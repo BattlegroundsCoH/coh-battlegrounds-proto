@@ -1,0 +1,113 @@
+syntax = "proto3";
+package lobbies;
+option go_package = "lobbies/proto";
+
+service LobbyService {
+    rpc HostLobby(HostLobbyRequest) returns (stream LobbyStateUpdate);
+    rpc JoinLobby(JoinLobbyRequest) returns (stream LobbyStateUpdate);
+    rpc UpdateLobbyState(LobbyStateUpdate) returns (Empty);
+    rpc SendChatMessage(ChatMessage) returns (Empty);
+    rpc LeaveLobby(LeaveLobbyRequest) returns (Empty);
+    rpc LaunchGame(LaunchGameRequest) returns (Empty);
+    rpc ReportGameStatus(ReportGameStatusRequest) returns (Empty);
+}
+
+// TODO: Replace participantId with a token to better prove the identity of the participant in requests
+
+message JoinLobbyRequest {
+    string lobby_id = 1;
+    string participant_id = 2;
+    string password = 3; // Optional
+}
+
+message LeaveLobbyRequest {
+    string lobby_id = 1;
+    string participant_id = 2;
+}
+
+message HostLobbyRequest {
+    string host_id = 1;
+    string lobby_name = 2;
+    optional string password = 3;
+    map<string, string> settings = 4;
+}
+
+message LaunchGameRequest {
+    string lobby_id = 1;
+    string participant_id = 2;
+}
+
+message ReportGameStatusRequest {
+    string lobby_id = 1;
+    string participant_id = 2;
+    string status = 3; // e.g., "started", "finished", "error"
+}
+
+message LobbyStateUpdate {
+    string lobby_id = 1;
+    string participant_id = 2;
+    string event_type = 3;
+    oneof change {
+        SlotUpdate slot_update = 4;
+        LobbySetting settings_update = 5;
+        Team team_update = 6; // Note, this will ignore the "Slot" field since there's a separate message for slots
+        ChatMessage chat_message = 7;
+        Lobby lobby_state = 8;
+        Participant participant_update = 9;
+        Empty empty = 10; // For cases where no specific change is made
+    }
+}
+
+message SlotUpdate {
+    int32 team_id = 1;
+    Slot slot = 2; // Updated slot information
+}
+
+message Lobby {
+    string id = 1;
+    string name = 2;
+    string host_id = 3;
+    repeated Team teams = 5;
+    repeated Participant participants = 6;
+    map<string, string> settings = 7; // Key-value pairs for lobby settings
+    string game_id = 8;
+}
+
+message LobbySetting {
+    string key = 1;
+    string old_value = 2; // Optional, can be empty if not applicable
+    string new_value = 3;
+}
+
+message Team {
+    int32 id = 1;
+    string alias = 2;
+    string type = 3;
+    repeated Slot slots = 4;
+}
+
+message Slot {
+    int32 id = 1;
+    optional string participant_id = 2;
+    string faction = 3;
+    optional string company_id = 4;
+    optional string ai_difficulty = 5;
+    bool hidden = 6;
+    bool locked = 7;
+}
+
+message Participant {
+    string participant_id = 1;
+    string name = 2;
+    bool is_ai = 3;
+    bool ready = 4;
+}
+
+message ChatMessage {
+    string lobby_id = 1;
+    string sender_id = 2;
+    string channel = 3;
+    string content = 4;
+}
+
+message Empty {}
