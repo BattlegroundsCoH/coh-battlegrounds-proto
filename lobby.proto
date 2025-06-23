@@ -1,7 +1,7 @@
 syntax = "proto3";
 package lobbies;
 option go_package = "lobbies/proto";
-option csharp_namespace = "Battlegrounds.Client.Proto.Lobbies";
+option csharp_namespace = "Battlegrounds.Proto.Lobbies";
 
 service LobbyService {
     rpc HostLobby(HostLobbyRequest) returns (stream LobbyStateUpdate);
