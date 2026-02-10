@@ -77,6 +77,7 @@ message LobbyStateUpdate {
         Lobby lobby_state = 8;
         Participant participant_update = 9;
         Empty empty = 10; // For cases where no specific change is made
+        SystemMessage system_message = 11; // For system-wide notifications or errors
     }
 }
 
@@ -130,6 +131,11 @@ message ChatMessage {
     string sender_id = 2;
     string channel = 3;
     string content = 4;
+}
+
+message SystemMessage {
+  string message_type = 1; // e.g., "info", "warning", "error"
+  string content = 2;
 }
 
 message PlayMap {
