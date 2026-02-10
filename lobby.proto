@@ -3,14 +3,34 @@ package lobbies;
 option go_package = "lobbies/proto";
 option csharp_namespace = "Battlegrounds.Proto.Lobbies";
 
+// This proto file defines the gRPC service and messages for managing game lobbies, including hosting, joining, updating lobby state, sending chat messages, leaving the lobby, launching the game, reporting game status, and changing the map. 
+// The service allows for real-time updates to be broadcasted to all participants in the lobby whenever a relevant event occurs.
 service LobbyService {
+
+    // Allows a participant to host a new lobby, which will trigger updates to other participants about the new lobby and its initial state.
     rpc HostLobby(HostLobbyRequest) returns (stream LobbyStateUpdate);
+
+    // Allows a participant to join an existing lobby, which will trigger updates to other participants in the lobby about the new participant and their assigned slot.
     rpc JoinLobby(JoinLobbyRequest) returns (stream LobbyStateUpdate);
+
+    // Allows the host or participants to update the lobby state, which will be broadcasted to all other participants in the lobby. This can include changes to team compositions, lobby settings, or other relevant information.
     rpc UpdateLobbyState(LobbyStateUpdate) returns (Empty);
+
+    // Allows participants to send chat messages within the lobby, which will be broadcasted to all other participants in the lobby.
     rpc SendChatMessage(ChatMessage) returns (Empty);
+
+    // Allows a participant to leave the lobby, which will trigger updates to other participants and free up their slot for others to join.
     rpc LeaveLobby(LeaveLobbyRequest) returns (Empty);
+
+    // Initiates the launching of the game for all lobby participants.
     rpc LaunchGame(LaunchGameRequest) returns (Empty);
+
+    // Reports the end-of-match status back to the lobby, which can be used for post-game processing and analytics
     rpc ReportGameStatus(ReportGameStatusRequest) returns (Empty);
+
+    // Changes the map for the lobby    
+    rpc ChangeMap(ChangeMapRequest) returns (ChangeMapResponse);
+
 }
 
 // TODO: Replace participantId with a token to better prove the identity of the participant in requests
@@ -110,6 +130,22 @@ message ChatMessage {
     string sender_id = 2;
     string channel = 3;
     string content = 4;
+}
+
+message PlayMap {
+    string map_id = 1;
+    int32 max_players = 2;
+}
+
+message ChangeMapRequest {
+    string lobby_id = 1;
+    string participant_id = 2;
+    PlayMap new_map = 3;
+}
+
+message ChangeMapResponse {
+    bool success = 1;
+    int32 error_reason = 2; // 0 for no error, other values can represent specific errors (e.g., 1 for map not found, 2 for insufficient permissions)
 }
 
 message Empty {}
