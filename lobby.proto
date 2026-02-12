@@ -165,7 +165,6 @@ message InitiateDownloadRequest {
     string lobby_id = 1;
     string participant_id = 2; // Must be the host
     string resource_id = 3; // Identifier for the resource to download (e.g., map ID, mod ID)
-    string resource_url = 4; // Optional URL for the resource
 }
 
 message ReportDownloadProgressRequest {
