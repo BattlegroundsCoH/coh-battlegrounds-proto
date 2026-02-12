@@ -31,6 +31,12 @@ service LobbyService {
     // Changes the map for the lobby    
     rpc ChangeMap(ChangeMapRequest) returns (ChangeMapResponse);
 
+    // Initiates a download sequence for all participants in the lobby and streams progress updates
+    rpc InitiateDownload(InitiateDownloadRequest) returns (stream DownloadState);
+
+    // Reports download progress from a participant
+    rpc ReportDownloadProgress(ReportDownloadProgressRequest) returns (Empty);
+
 }
 
 // TODO: Replace participantId with a token to better prove the identity of the participant in requests
@@ -78,6 +84,7 @@ message LobbyStateUpdate {
         Participant participant_update = 9;
         Empty empty = 10; // For cases where no specific change is made
         SystemMessage system_message = 11; // For system-wide notifications or errors
+        DownloadState download_state = 12; // For download progress updates
     }
 }
 
@@ -152,6 +159,32 @@ message ChangeMapRequest {
 message ChangeMapResponse {
     bool success = 1;
     int32 error_reason = 2; // 0 for no error, other values can represent specific errors (e.g., 1 for map not found, 2 for insufficient permissions)
+}
+
+message InitiateDownloadRequest {
+    string lobby_id = 1;
+    string participant_id = 2; // Must be the host
+    string resource_id = 3; // Identifier for the resource to download (e.g., map ID, mod ID)
+    string resource_url = 4; // Optional URL for the resource
+}
+
+message ReportDownloadProgressRequest {
+    string lobby_id = 1;
+    string participant_id = 2;
+    float progress = 3; // Progress percentage (0.0 to 100.0)
+    bool completed = 4; // Whether the download is complete
+}
+
+message DownloadStatus {
+    string participant_id = 1;
+    float progress = 2; // Progress percentage (0.0 to 100.0)
+    bool completed = 3; // Whether the participant has completed the download
+}
+
+message DownloadState {
+    string resource_id = 1;
+    repeated DownloadStatus participant_status = 2; // Status for each participant
+    bool all_completed = 3; // Whether all participants have completed the download
 }
 
 message Empty {}
