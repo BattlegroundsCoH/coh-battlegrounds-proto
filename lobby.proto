@@ -32,7 +32,10 @@ service LobbyService {
     rpc ChangeMap(ChangeMapRequest) returns (ChangeMapResponse);
 
     // Initiates a download sequence for all participants in the lobby and streams progress updates
-    rpc InitiateDownload(InitiateDownloadRequest) returns (stream DownloadState);
+    rpc BeginInitiateDownload(InitiateDownloadRequest) returns (stream DownloadState);
+
+    // Initialise a download for all participants but the host will not care about the progress
+    rpc InitiateDownload(InitiateDownloadRequest) returns (Empty);
 
     // Reports download progress from a participant
     rpc ReportDownloadProgress(ReportDownloadProgressRequest) returns (Empty);
