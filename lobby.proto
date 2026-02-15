@@ -40,6 +40,12 @@ service LobbyService {
     // Reports download progress from a participant
     rpc ReportDownloadProgress(ReportDownloadProgressRequest) returns (Empty);
 
+    // Begins the match (freezes the lobby and prevents further changes, allowing the game to start)
+    rpc BeginMatch(Empty) returns (Empty);
+
+    // Ends the match (resets the lobby and allows participants to return to the lobby state)
+    rpc EndMatch(Empty) returns (Empty);
+
 }
 
 // TODO: Replace participantId with a token to better prove the identity of the participant in requests
