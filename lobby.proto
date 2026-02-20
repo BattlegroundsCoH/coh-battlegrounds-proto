@@ -13,6 +13,9 @@ service LobbyService {
     // Allows a participant to join an existing lobby, which will trigger updates to other participants in the lobby about the new participant and their assigned slot.
     rpc JoinLobby(JoinLobbyRequest) returns (stream LobbyStateUpdate);
 
+    // Allows the host to remove a participant from the lobby, which will trigger updates to other participants in the lobby about the removed participant and their freed slot.
+    rpc RemoveParticipant(RemoveParticipantRequest) returns (Empty);
+
     // Allows the host or participants to update the lobby state, which will be broadcasted to all other participants in the lobby. This can include changes to team compositions, lobby settings, or other relevant information.
     rpc UpdateLobbyState(LobbyStateUpdate) returns (Empty);
 
@@ -48,8 +51,6 @@ service LobbyService {
 
 }
 
-// TODO: Replace participantId with a token to better prove the identity of the participant in requests
-
 message JoinLobbyRequest {
     string lobby_id = 1;
     string participant_id = 2;
@@ -67,6 +68,13 @@ message HostLobbyRequest {
     optional string password = 3;
     map<string, string> settings = 4;
     string game_id = 5;
+}
+
+message RemoveParticipantRequest {
+    string lobby_id = 1;
+    string participant_id = 2;
+    string target_participant_id = 3; // The participant to be removed
+    string reason = 4; // Optional reason for removal, can be used for logging or notifications
 }
 
 message LaunchGameRequest {
@@ -102,16 +110,20 @@ message SlotUpdate {
     Slot slot = 2; // Updated slot information
 }
 
+// The Lobby message represents the current state of the lobby, including its ID, name, host, teams, participants, settings, and associated game ID. 
+// This message can be used to broadcast the entire lobby state to participants whenever a significant change occurs (e.g., a new participant joins, a participant leaves, or the host updates lobby settings).
 message Lobby {
     string id = 1;
     string name = 2;
     string host_id = 3;
-    repeated Team teams = 5;
-    repeated Participant participants = 6;
-    map<string, string> settings = 7; // Key-value pairs for lobby settings
-    string game_id = 8;
+    repeated Team teams = 4;
+    repeated Participant participants = 5;
+    map<string, string> settings = 6; // Key-value pairs for lobby settings
+    string game_id = 7;
 }
 
+// The LobbySetting message represents a change to a specific lobby setting, including the key of the setting being changed, its old value (if applicable), and its new value. 
+// This message can be used to broadcast specific setting changes to participants without needing to send the entire lobby state, allowing for more efficient updates when only a single setting is modified.
 message LobbySetting {
     string key = 1;
     string old_value = 2; // Optional, can be empty if not applicable
@@ -195,4 +207,5 @@ message DownloadState {
     bool all_completed = 3; // Whether all participants have completed the download
 }
 
+// An empty message that can be used for RPC methods that do not require any parameters or return values, or as a placeholder when no specific change is made in a LobbyStateUpdate.
 message Empty {}
