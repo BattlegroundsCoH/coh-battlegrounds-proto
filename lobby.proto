@@ -5,6 +5,7 @@ option csharp_namespace = "Battlegrounds.Proto.Lobbies";
 
 // This proto file defines the gRPC service and messages for managing game lobbies, including hosting, joining, updating lobby state, sending chat messages, leaving the lobby, launching the game, reporting game status, and changing the map. 
 // The service allows for real-time updates to be broadcasted to all participants in the lobby whenever a relevant event occurs.
+// All RPC methods require an authorization token to identify the participant making the request, and the lobby ID is expected to be provided in the metadata for methods that operate on a specific lobby.
 service LobbyService {
 
     // Allows a participant to host a new lobby, which will trigger updates to other participants about the new lobby and its initial state.
@@ -51,60 +52,71 @@ service LobbyService {
 
 }
 
+// The HostLobbyRequest message contains the necessary information for a participant to host a new lobby, including the host's ID, lobby name, optional password for protected lobbies, initial lobby settings as key-value pairs, and the associated game ID.
+message HostLobbyRequest {
+    string lobby_name = 1;
+    optional string password = 2;
+    map<string, string> settings = 3;
+    string game_id = 4;
+}
+
+// The JoinLobbyRequest message contains the necessary information for a participant to join an existing lobby, including the lobby ID and an optional password if the lobby is protected.
 message JoinLobbyRequest {
     string lobby_id = 1;
-    string participant_id = 2;
-    string password = 3; // Optional
+    string password = 2; // Optional, leave empty if the lobby does not require a password
 }
 
-message LeaveLobbyRequest {
-    string lobby_id = 1;
-    string participant_id = 2;
-}
+// The LeaveLobbyRequest message is an empty message that can be used when a participant wants to leave the lobby. It does not require any parameters since the server can identify the participant based on the connection context.
+// The caller is expected to define the lobby id using the metadata key x-lobby-id. The participant id is extracted from the authorization token, so it is not necessary to include it in the message itself.
+message LeaveLobbyRequest {}
 
-message HostLobbyRequest {
-    string host_id = 1;
-    string lobby_name = 2;
-    optional string password = 3;
-    map<string, string> settings = 4;
-    string game_id = 5;
-}
-
+// The RemoveParticipantRequest message contains the necessary information for the host to remove a participant from the lobby, including the target participant's ID and an optional reason for removal that can be used for logging or notifications.
+// The caller is expected to define the lobby id using the metadata key x-lobby-id. The host's participant id is extracted from the authorization token, so it is not necessary to include it in the message itself.
 message RemoveParticipantRequest {
-    string lobby_id = 1;
-    string participant_id = 2;
-    string target_participant_id = 3; // The participant to be removed
-    string reason = 4; // Optional reason for removal, can be used for logging or notifications
+    string target_participant_id = 1; // The participant to be removed
+    string reason = 2; // Optional reason for removal, can be used for logging or notifications
 }
 
-message LaunchGameRequest {
-    string lobby_id = 1;
-    string participant_id = 2;
-}
+// The LaunchGameRequest message is an empty message that can be used to initiate the launching of the game for all lobby participants. It does not require any parameters since the server can identify the host and lobby based on the connection context.
+// The caller is expected to define the lobby id using the metadata key x-lobby-id. The host's participant id is extracted from the authorization token, so it is not necessary to include it in the message itself.
+message LaunchGameRequest {}
 
+// The ReportGameStatusRequest message contains the necessary information for a participant to report the end-of-match status back to the lobby, which can be used for post-game processing and analytics. The status field can indicate whether the match was started, finished, or if there was an error.
+// The caller is expected to define the lobby id using the metadata key x-lobby-id. The participant id is extracted from the authorization token, so it is not necessary to include it in the message itself.
 message ReportGameStatusRequest {
-    string lobby_id = 1;
-    string participant_id = 2;
-    string status = 3; // e.g., "started", "finished", "error"
+    string status = 1; // e.g., "started", "finished", "error"
 }
 
+// The LobbyStateUpdate message is a versatile message that can represent various types of updates to the lobby state, including changes to slots, lobby settings, team compositions, chat messages, and more. 
+// The event_type field indicates the type of event that triggered the update (e.g., "slot_update", "settings_update", "team_update", "chat_message", "lobby_state", "participant_update", "system_message", "download_state"), and the oneof change field allows for different types of updates to be included in the same message structure, making it flexible for broadcasting various changes to all participants in the lobby.
+// When a participant joins the lobby, they will receive a LobbyStateUpdate with the event_type "lobby_state" that contains the full state of the lobby, including all teams, slots, participants, and settings. This allows the new participant to synchronize their view of the lobby with the current state.
+// For other events, such as a slot update or a chat message, the event_type will indicate the specific type of update, and the corresponding field in the oneof change will contain the relevant information for that update. This allows for efficient broadcasting of specific changes without needing to send the entire lobby state every time.
+// Note: For team updates, the Slot field will be ignored since there is a separate SlotUpdate message for slot-specific changes. The Team message will focus on changes to the team composition, such as adding or removing participants from a team, or changing the team's alias or type.
+// The Empty message can be used in cases where no specific change is made to the lobby state, but an update still needs to be broadcasted (e.g., when a participant leaves the lobby, the event_type can be "participant_update" with an empty change to indicate that a participant has left without needing to specify which participant).
+// The SystemMessage can be used for broadcasting system-wide notifications or errors that are not specific to a particular participant or slot, such as server maintenance announcements, error messages, or other important information that all participants should be aware of.
+// The DownloadState can be used for broadcasting updates related to download progress for resources such as maps or mods, allowing participants to see the progress of downloads for themselves and other participants in the lobby.
+// Overall, the LobbyStateUpdate message provides a flexible and efficient way to communicate various types of updates to all participants in the lobby, ensuring that everyone stays informed about changes to the lobby state in real-time.
+// Note: For certain updates, such as a slot update or a chat message, the event_type will indicate the specific type of update, and the corresponding field in the oneof change will contain the relevant information for that update. This allows for efficient broadcasting of specific changes without needing to send the entire lobby state every time.
+// Example usage:
+// When a participant joins the lobby, they will receive a LobbyStateUpdate with the event_type "lobby_state" that contains the full state of the lobby, including all teams, slots, participants, and settings. This allows the new participant to synchronize their view of the lobby with the current state.
+// For other events, such as a slot update or a chat message, the event_type will indicate the specific type of update, and the corresponding field in the oneof change will contain the relevant information for that update. This allows for efficient broadcasting of specific changes without needing to send the entire lobby state every time.
+// The caller is expected to define the lobby id using the metadata key x-lobby-id for methods that operate on a specific lobby, and the participant id is extracted from the authorization token, so it is not necessary to include it in the message itself for those cases.
 message LobbyStateUpdate {
-    string lobby_id = 1;
-    string participant_id = 2;
-    string event_type = 3;
+    string event_type = 1;
     oneof change {
-        SlotUpdate slot_update = 4;
-        LobbySetting settings_update = 5;
-        Team team_update = 6; // Note, this will ignore the "Slot" field since there's a separate message for slots
-        ChatMessage chat_message = 7;
-        Lobby lobby_state = 8;
-        Participant participant_update = 9;
-        Empty empty = 10; // For cases where no specific change is made
-        SystemMessage system_message = 11; // For system-wide notifications or errors
-        DownloadState download_state = 12; // For download progress updates
+        SlotUpdate slot_update = 2;
+        LobbySetting settings_update = 3;
+        Team team_update = 4; // Note, this will ignore the "Slot" field since there's a separate message for slots
+        ChatMessage chat_message = 5;
+        Lobby lobby_state = 6;
+        Participant participant_update = 7;
+        Empty empty = 8; // For cases where no specific change is made
+        SystemMessage system_message = 9; // For system-wide notifications or errors
+        DownloadState download_state = 10; // For download progress updates
     }
 }
 
+// The SlotUpdate message represents a change to a specific slot within a team, including the team ID and the updated slot information.
 message SlotUpdate {
     int32 team_id = 1;
     Slot slot = 2; // Updated slot information
@@ -130,6 +142,7 @@ message LobbySetting {
     string new_value = 3;
 }
 
+// The Team message represents a team within the lobby, including its ID, alias, type (e.g., "human", "AI", "spectator"), and the slots assigned to that team.
 message Team {
     int32 id = 1;
     string alias = 2;
@@ -137,6 +150,7 @@ message Team {
     repeated Slot slots = 4;
 }
 
+// The Slot message represents a specific slot within a team, including its ID, the participant assigned to that slot (if any), the faction chosen by the participant, the company ID (if applicable), the AI difficulty level (if applicable), and whether the slot is hidden or locked.
 message Slot {
     int32 id = 1;
     optional string participant_id = 2;
@@ -147,6 +161,7 @@ message Slot {
     bool locked = 7;
 }
 
+// The Participant message represents a participant in the lobby, including their ID, name, whether they are an AI participant, and whether they are ready to start the game.
 message Participant {
     string participant_id = 1;
     string name = 2;
@@ -154,53 +169,58 @@ message Participant {
     bool ready = 4;
 }
 
+// The ChatMessage message represents a chat message sent by a participant within the lobby, including the lobby ID, sender's participant ID, the channel the message was sent in (e.g., "general", "team"), and the content of the message.
+// The caller is expected to define the lobby id using the metadata key x-lobby-id for methods that operate on a specific lobby, and the participant id is extracted from the authorization token, so it is not necessary to include it in the message itself for those cases. However, including the channel and content allows for proper broadcasting of chat messages to other participants in the lobby.
 message ChatMessage {
-    string lobby_id = 1;
-    string sender_id = 2;
-    string channel = 3;
-    string content = 4;
+    string channel = 1;
+    string content = 2;
 }
 
+// The SystemMessage message represents a system-wide notification or error that can be broadcasted to all participants in the lobby, including a message type (e.g., "info", "warning", "error") and the content of the message.
+// This message can be used for important announcements, error messages, or other information that all participants should be aware of, regardless of their specific role or participation in the lobby.
+// The caller is expected to define the lobby id using the metadata key x-lobby-id for methods that operate on a specific lobby, and the participant id is extracted from the authorization token, so it is not necessary to include it in the message itself for those cases. However, including the message type and content allows for proper broadcasting of system messages to all participants in the lobby.
 message SystemMessage {
   string message_type = 1; // e.g., "info", "warning", "error"
   string content = 2;
 }
 
+// The ChangeMapRequest message contains the necessary information for a participant to request a change of the map for the lobby, including the lobby ID, participant ID, and the new map information (map ID and maximum number of players).
 message PlayMap {
     string map_id = 1;
     int32 max_players = 2;
 }
 
+// The ChangeMapResponse message contains the response to a ChangeMapRequest, indicating whether the map change was successful and providing an error reason if it was not successful (e.g., map not found, insufficient permissions).
+// The caller is expected to define the lobby id using the metadata key x-lobby-id for methods that operate on a specific lobby, and the participant id is extracted from the authorization token, so it is not necessary to include it in the message itself for those cases. However, including the new map information allows for proper processing of the map change request and broadcasting of the new map information to all participants in the lobby if the change is successful.
 message ChangeMapRequest {
-    string lobby_id = 1;
-    string participant_id = 2;
-    PlayMap new_map = 3;
+    PlayMap new_map = 1;
 }
 
+// The ChangeMapResponse message contains the response to a ChangeMapRequest, indicating whether the map change was successful and providing an error reason if it was not successful (e.g., map not found, insufficient permissions).
 message ChangeMapResponse {
     bool success = 1;
     int32 error_reason = 2; // 0 for no error, other values can represent specific errors (e.g., 1 for map not found, 2 for insufficient permissions)
 }
 
+// The InitiateDownloadRequest message contains the necessary information for a participant to initiate a download sequence for a specific resource (e.g., map, mod) for all participants in the lobby. The resource_id field identifies the resource to be downloaded, and the server will handle the initiation of the download process and broadcasting of progress updates to all participants in the lobby.
 message InitiateDownloadRequest {
-    string lobby_id = 1;
-    string participant_id = 2; // Must be the host
-    string resource_id = 3; // Identifier for the resource to download (e.g., map ID, mod ID)
+    string resource_id = 1; // Identifier for the resource to download (e.g., map ID, mod ID)
 }
 
+// The ReportDownloadProgressRequest message contains the necessary information for a participant to report their download progress for a specific resource back to the server, which can then broadcast this information to all participants in the lobby. The progress field indicates the percentage of the download completed (from 0.0 to 100.0), and the completed field indicates whether the download has been completed by the participant.
 message ReportDownloadProgressRequest {
-    string lobby_id = 1;
-    string participant_id = 2;
-    float progress = 3; // Progress percentage (0.0 to 100.0)
-    bool completed = 4; // Whether the download is complete
+    float progress = 1; // Progress percentage (0.0 to 100.0)
+    bool completed = 2; // Whether the download is complete
 }
 
+// The DownloadStatus message represents the download status of a specific participant for a given resource, including the participant's ID, their current progress percentage, and whether they have completed the download. This information can be used to track the download progress of each participant in the lobby and provide updates to all participants about the overall download status.
 message DownloadStatus {
     string participant_id = 1;
     float progress = 2; // Progress percentage (0.0 to 100.0)
     bool completed = 3; // Whether the participant has completed the download
 }
 
+// The DownloadState message represents the overall download state for a specific resource in the lobby, including the resource ID, the download status of each participant, and whether all participants have completed the download. This information can be used to provide real-time updates to all participants about the progress of downloads for resources such as maps or mods, allowing them to see how their own progress compares to others in the lobby and when everyone has completed the necessary downloads.
 message DownloadState {
     string resource_id = 1;
     repeated DownloadStatus participant_status = 2; // Status for each participant
