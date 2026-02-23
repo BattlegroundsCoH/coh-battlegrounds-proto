@@ -103,7 +103,7 @@ message ReportGameStatusRequest {
 // The caller is expected to define the lobby id using the metadata key x-lobby-id for methods that operate on a specific lobby, and the participant id is extracted from the authorization token, so it is not necessary to include it in the message itself for those cases.
 message LobbyStateUpdate {
     string event_type = 1;
-    string sender_id = 2; // Assigned by the server based on the participant's authorization token, included here for broadcasting to other participants
+    string participant_id = 2; // Assigned by the server based on the participant's authorization token, included here for broadcasting to other participants
     oneof change {
         SlotUpdate slot_update = 3;
         LobbySetting settings_update = 4;
