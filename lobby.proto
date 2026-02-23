@@ -113,6 +113,7 @@ message LobbyStateUpdate {
         Empty empty = 8; // For cases where no specific change is made
         SystemMessage system_message = 9; // For system-wide notifications or errors
         DownloadState download_state = 10; // For download progress updates
+        string lobby_id = 11; // For updates the initial lobby creation, so the host can be informed of the lobby ID that was created
     }
 }
 
