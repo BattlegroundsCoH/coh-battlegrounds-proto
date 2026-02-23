@@ -103,17 +103,18 @@ message ReportGameStatusRequest {
 // The caller is expected to define the lobby id using the metadata key x-lobby-id for methods that operate on a specific lobby, and the participant id is extracted from the authorization token, so it is not necessary to include it in the message itself for those cases.
 message LobbyStateUpdate {
     string event_type = 1;
+    string sender_id = 2; // Assigned by the server based on the participant's authorization token, included here for broadcasting to other participants
     oneof change {
-        SlotUpdate slot_update = 2;
-        LobbySetting settings_update = 3;
-        Team team_update = 4; // Note, this will ignore the "Slot" field since there's a separate message for slots
-        ChatMessage chat_message = 5;
-        Lobby lobby_state = 6;
-        Participant participant_update = 7;
-        Empty empty = 8; // For cases where no specific change is made
-        SystemMessage system_message = 9; // For system-wide notifications or errors
-        DownloadState download_state = 10; // For download progress updates
-        string lobby_id = 11; // For updates the initial lobby creation, so the host can be informed of the lobby ID that was created
+        SlotUpdate slot_update = 3;
+        LobbySetting settings_update = 4;
+        Team team_update = 5; // Note, this will ignore the "Slot" field since there's a separate message for slots
+        ChatMessage chat_message = 6;
+        Lobby lobby_state = 7;
+        Participant participant_update = 8; // For updates related to participants joining, leaving, or being removed from the lobby
+        Empty empty = 9; // For cases where no specific change is made
+        SystemMessage system_message = 10; // For system-wide notifications or errors
+        DownloadState download_state = 11; // For download progress updates
+        string lobby_id = 12; // For updates the initial lobby creation, so the host can be informed of the lobby ID that was created
     }
 }
 
@@ -175,6 +176,7 @@ message Participant {
 message ChatMessage {
     string channel = 1;
     string content = 2;
+    string sender_id = 3; // Assigned by the server based on the participant's authorization token, included here for broadcasting to other participants
 }
 
 // The SystemMessage message represents a system-wide notification or error that can be broadcasted to all participants in the lobby, including a message type (e.g., "info", "warning", "error") and the content of the message.
