@@ -48,7 +48,7 @@ service LobbyService {
     rpc BeginMatch(Empty) returns (Empty);
 
     // Ends the match (resets the lobby and allows participants to return to the lobby state)
-    rpc EndMatch(Empty) returns (Empty);
+    rpc EndMatch(EndMatchRequest) returns (Empty);
 
 }
 
@@ -228,6 +228,19 @@ message DownloadState {
     string resource_id = 1;
     repeated DownloadStatus participant_status = 2; // Status for each participant
     bool all_completed = 3; // Whether all participants have completed the download
+}
+
+// The EndMatchReason enum represents the various reasons why a match may end, including successful completion, abortion by the host, or errors in the game or server. This information can be used for post-match processing, analytics, and providing feedback to participants about the outcome of the match.
+enum EndMatchReason {
+  UNKNOWN = 0;
+  SUCCESS = 1; // Match ended successfully (e.g., one team won, draw)
+  ABORTED = 2; // Match was aborted (e.g., host ended the match)
+  SCAR_ERROR = 3; // Match ended due to an error in the game or server
+}
+
+// The EndMatchRequest message contains the necessary information for why a match is being ended, which can be used for post-match processing, analytics, and providing feedback to participants about the outcome of the match. The reason field indicates the specific reason for ending the match, which can help differentiate between a normal match completion, an aborted match, or an error scenario.
+message EndMatchRequest {
+  EndMatchReason reason = 1; // Reason for ending the match
 }
 
 // An empty message that can be used for RPC methods that do not require any parameters or return values, or as a placeholder when no specific change is made in a LobbyStateUpdate.
