@@ -115,6 +115,7 @@ message LobbyStateUpdate {
         SystemMessage system_message = 10; // For system-wide notifications or errors
         DownloadState download_state = 11; // For download progress updates
         string lobby_id = 12; // For updates the initial lobby creation, so the host can be informed of the lobby ID that was created
+        PlayMap map = 13; // For updates related to map changes in the lobby
     }
 }
 
