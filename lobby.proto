@@ -35,6 +35,10 @@ service LobbyService {
     // Changes the map for the lobby    
     rpc ChangeMap(ChangeMapRequest) returns (ChangeMapResponse);
 
+    // Moves the caller to a different slot within the lobby, which will trigger updates to other participants about the slot change. 
+    // The request should include the target team ID and slot ID that the participant wants to move to, and the server will handle the validation and broadcasting of the slot change to all participants in the lobby.
+    rpc MoveSlot(MoveSlotRequest) returns (Empty);
+
     // Initiates a download sequence for all participants in the lobby and streams progress updates
     rpc BeginInitiateDownload(InitiateDownloadRequest) returns (stream DownloadState);
 
@@ -85,6 +89,13 @@ message LaunchGameRequest {}
 // The caller is expected to define the lobby id using the metadata key x-lobby-id. The participant id is extracted from the authorization token, so it is not necessary to include it in the message itself.
 message ReportGameStatusRequest {
     string status = 1; // e.g., "started", "finished", "error"
+}
+
+// The MoveSlotRequest message contains the necessary information for a participant to request moving to a different slot within the lobby, including the target team ID and target slot ID that the participant wants to move to.
+// The server will handle the validation of the move (e.g., checking if the target slot is available and if the participant has permission to move there) and will broadcast the slot change to all participants in the lobby if the move is successful.
+message MoveSlotRequest {
+    int32 target_team_id = 1;
+    int32 target_slot_id = 2;
 }
 
 // The LobbyStateUpdate message is a versatile message that can represent various types of updates to the lobby state, including changes to slots, lobby settings, team compositions, chat messages, and more. 
